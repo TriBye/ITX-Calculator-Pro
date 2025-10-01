@@ -3,7 +3,6 @@ from tkinter import scrolledtext, messagebox, font as tkfont
 import google.generativeai as genai
 import os
 import threading
-import re
 from dotenv import load_dotenv
 import sympy
 
@@ -89,11 +88,11 @@ class AIAssistantApp:
         self._initialize_model_and_chat() # Initialize model and chat session
 
         if not self.model or not self.chat: # Check both model and chat
-            self.display_message("Gemini API is unavailable. I will use offline math evaluation when possible.", "System")
+            self.display_message("Gemini API is unavailable. I will use offline evaluation when possible.", "System")
             self.status_var.set("Offline mode")
         else:
             # Updated initial message for clarity
-            self.display_message("Ask me anything about math! I will provide plain text answers.", "AI")
+            self.display_message("Ask me anything! I will provide plain text answers.", "AI")
             self.status_var.set("" if self.model and self.chat else "Offline mode")
 
     def _initialize_model_and_chat(self):
@@ -104,9 +103,9 @@ class AIAssistantApp:
             genai.configure(api_key=GEMINI_API_KEY)
 
             system_instruction_text = (
-                "You are an AI Math Assistant. Your responses must be plain text only. "
+                "You are an AI Assistant. Your responses must be plain text only. "
                 "Do not use any markdown formatting (like bold, italics, lists, code blocks, headers, etc.). "
-                "Provide only the raw text of your answer. Focus on math-related queries."
+                "Provide only the raw text of your answer."
             )
             
             # Use the model name from your original code
@@ -143,24 +142,6 @@ class AIAssistantApp:
         self.chat_display.see(tk.END)
 
 
-    def _is_math_related(self, text):
-        if not text:
-            return False
-        if any(ch.isdigit() for ch in text):
-            return True
-        math_symbols = set('+-*/^=()[]{}.,%<>')
-        if any(ch in math_symbols for ch in text):
-            return True
-        tokens = re.findall(r"[A-Za-z]+", text.lower())
-        math_keywords = {
-            'integrate', 'integral', 'derive', 'derivative', 'differentiate', 'gradient',
-            'limit', 'solve', 'equation', 'expression', 'factor', 'simplify', 'expand',
-            'matrix', 'vector', 'algebra', 'calculus', 'geometry', 'probability',
-            'log', 'ln', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sqrt', 'series',
-            'sum', 'product', 'mean', 'median', 'variance', 'determinant'
-        }
-        return any(token in math_keywords for token in tokens)
-
     def _evaluate_locally(self, user_input):
         try:
             expr = sympy.sympify(user_input, locals=self.sympy_locals)
@@ -186,16 +167,6 @@ class AIAssistantApp:
     def send_message(self):
         user_input = self.input_entry.get().strip()
         if not user_input:
-            return
-
-        if not self._is_math_related(user_input):
-            self.display_message(
-                "Please ask a math-related question or provide a mathematical expression.",
-                "System"
-            )
-            self.input_entry.delete(0, tk.END)
-            self.input_entry.focus()
-            self.status_var.set("" if self.model and self.chat else "Offline mode")
             return
 
         self.input_entry.delete(0, tk.END)
